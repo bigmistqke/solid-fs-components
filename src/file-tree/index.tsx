@@ -70,7 +70,7 @@ interface FileTreeContext<T> {
   isDirExpandedById(id: string): boolean
   // Selection
   resetSelectedDirEntIds(): void
-  moveSelectedDirEntsToPath(path: string): void
+  moveToPath(path: string): void
   selectDirEntById(id: string): void
   shiftSelectDirEntById(id: string): void
   deselectDirEntById(id: string): void
@@ -520,9 +520,17 @@ export function FileTree<T>(props: FileTreeProps<T>) {
     })
   }
 
-  function moveSelectedDirEntsToPath(targetPath: string) {
+  function moveToPath(targetPath: string) {
+    const _focusedDirEntId = focusedDirEntId()
+
+    if (!_focusedDirEntId) {
+      throw new Error('Attempted to moveToPath without dirEnt focused')
+    }
+
     const targetId = pathToId(targetPath)
-    const ids = selectedDirEntIds()
+    const ids = selectedDirEntIds().includes(_focusedDirEntId)
+      ? selectedDirEntIds()
+      : [_focusedDirEntId]
     const paths = ids.map(idToPath)
     const existingPaths = new Array<{ newPath: string; oldPath: string }>()
 
@@ -588,19 +596,19 @@ export function FileTree<T>(props: FileTreeProps<T>) {
     get base() {
       return config.base
     },
+    getDirEntsOfDirId,
+    moveToPath,
+    pathToId,
     expandDirById,
     collapseDirById,
     isDirExpandedById,
-    moveSelectedDirEntsToPath,
-    resetSelectedDirEntIds,
     selectDirEntById,
     deselectDirEntById,
     shiftSelectDirEntById,
-    getDirEntsOfDirId,
+    resetSelectedDirEntIds,
     focusDirEnt: focusDirEntById,
     blurDirEnt: blurDirEntById,
     isDirEntFocused: isDirEntFocusedById,
-    pathToId,
   }
 
   // Call event handler with current selection
@@ -634,7 +642,7 @@ export function FileTree<T>(props: FileTreeProps<T>) {
         props.onDragOver?.(event)
       }}
       onDrop={event => {
-        moveSelectedDirEntsToPath(config.base)
+        moveToPath(config.base)
         props.onDrop?.(event)
       }}
     >
@@ -722,9 +730,9 @@ FileTree.DirEnt = function (
       const _dirEnt = dirEnt()
 
       if (_dirEnt.type === 'dir') {
-        fileTree.moveSelectedDirEntsToPath(_dirEnt.path)
+        fileTree.moveToPath(_dirEnt.path)
       } else {
-        fileTree.moveSelectedDirEntsToPath(PathUtils.getParent(_dirEnt.path))
+        fileTree.moveToPath(PathUtils.getParent(_dirEnt.path))
       }
 
       props.onDrop?.(event)
