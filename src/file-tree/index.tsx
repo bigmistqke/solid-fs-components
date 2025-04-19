@@ -14,6 +14,7 @@ import {
   type JSX,
   mapArray,
   mergeProps,
+  on,
   onCleanup,
   onMount,
   Show,
@@ -606,14 +607,19 @@ export function FileTree<T>(props: FileTreeProps<T>) {
   createEffect(() => props.onSelectedPaths?.(selectedDirEntIds().map(idToPath)))
 
   // Update selection from props
-  createComputed(() => {
-    if (!props.selectedPaths) return
-    setSelectedDirEntSpans(
-      props.selectedPaths
-        .filter(path => props.fs.exists(path))
-        .map(path => [pathToId(path, false)] as [string]),
-    )
-  })
+  createComputed(
+    on(
+      () => props.selectedPaths,
+      selectedPaths => {
+        if (!selectedPaths) return
+        setSelectedDirEntSpans(
+          selectedPaths
+            .filter(path => props.fs.exists(path))
+            .map(path => [pathToId(path, false)] as [string]),
+        )
+      },
+    ),
+  )
 
   // Freeze ID numbers for selected entries
   createComputed(() => selectedDirEntIds().forEach(freezeId))
