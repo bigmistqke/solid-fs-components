@@ -65,8 +65,6 @@ const App: Component = () => {
           onRename={(oldPath, newPath) =>
             setSelectedFile(file => PathUtils.rebase(file, oldPath, newPath))
           }
-          onSelectedPaths={console.log}
-          selectedPaths={['test/index.test.tsx']}
         >
           {dirEnt => {
             const [editable, setEditable] = createSignal(false)

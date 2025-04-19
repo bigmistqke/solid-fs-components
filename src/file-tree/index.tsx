@@ -259,8 +259,6 @@ export type FileTreeProps<T> = Overwrite<
     onDragOver?(event: WrapEvent<DragEvent, HTMLDivElement>): void
     onDrop?(event: WrapEvent<DragEvent, HTMLDivElement>): void
     onRename?(oldPath: string, newPath: string): void
-    onSelectedPaths?(paths: string[]): void
-    selectedPaths?: Array<string>
     sort?(dirEnt1: DirEnt, dirEnt2: DirEnt): number
   }
 >
@@ -610,14 +608,6 @@ export function FileTree<T>(props: FileTreeProps<T>) {
     blurDirEnt: blurDirEntById,
     isDirEntFocused: isDirEntFocusedById,
   }
-
-  // Call event handler with current selection
-  createEffect(() => props.onSelectedPaths?.(selectedDirEntIds().map(idToPath)))
-
-  // Update selection from props
-  createComputed(
-    () => props.selectedPaths?.map(path => pathToId(path, false)).forEach(selectDirEntById),
-  )
 
   // Freeze ID numbers for selected entries
   createComputed(() => selectedDirEntIds().forEach(freezeId))
