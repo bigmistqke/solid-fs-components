@@ -660,7 +660,6 @@ FileTree.DirEnt = function (
       onDragStart?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onDrop?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onMove?(parent: string): void
-      onPointerDown?(event: WrapEvent<PointerEvent, HTMLButtonElement>): void
       onPointerUp?(event: WrapEvent<PointerEvent, HTMLButtonElement>): void
       onFocus?(event: WrapEvent<FocusEvent, HTMLButtonElement>): void
       onBlur?(event: WrapEvent<FocusEvent, HTMLButtonElement>): void
@@ -680,32 +679,37 @@ FileTree.DirEnt = function (
       })
       props.ref?.(element)
     },
-    onPointerDown(event: WrapEvent<PointerEvent, HTMLButtonElement>) {
+    onPointerUp(event: WrapEvent<PointerEvent, HTMLButtonElement>) {
+      const _dirEnt = dirEnt()
+
       batch(() => {
+        // Handle dirEnt-selection
         if (event.shiftKey) {
           dirEnt().shiftSelect()
         } else {
-          if (!dirEnt().selected) {
-            if (!event[CTRL_KEY]) {
-              fileTree.resetSelectedDirEntIds()
+          if (event[CTRL_KEY]) {
+            // Toggle selection when ctrl is pressed
+            if (!dirEnt().selected) {
+              dirEnt().select()
+            } else {
+              dirEnt().deselect()
             }
+          } else {
+            // Reset selection to this dirEnt
+            fileTree.resetSelectedDirEntIds()
             dirEnt().select()
-          } else if (event[CTRL_KEY]) {
-            dirEnt().deselect()
+          }
+        }
+        // Handle dir-expand/collapse
+        if (_dirEnt.type === 'dir') {
+          if (_dirEnt.expanded) {
+            _dirEnt.collapse()
+          } else {
+            _dirEnt.expand()
           }
         }
       })
-      props.onPointerDown?.(event)
-    },
-    onPointerUp(event: WrapEvent<PointerEvent, HTMLButtonElement>) {
-      const _dirEnt = dirEnt()
-      if (_dirEnt.type === 'dir') {
-        if (_dirEnt.expanded) {
-          _dirEnt.collapse()
-        } else {
-          _dirEnt.expand()
-        }
-      }
+
       props.onPointerUp?.(event)
     },
     onDragOver: (event: WrapEvent<DragEvent, HTMLButtonElement>) => {
