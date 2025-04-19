@@ -255,6 +255,7 @@ export type FileTreeProps<T> = Overwrite<
     base?: string
     children: (dirEnt: Accessor<DirEnt>, fileTree: FileTreeContext<T>) => JSX.Element
     fs: Pick<FileSystem<T>, 'readdir' | 'rename' | 'exists'>
+    onPointerUp?(event: WrapEvent<PointerEvent, HTMLDivElement>): void
     onDragOver?(event: WrapEvent<DragEvent, HTMLDivElement>): void
     onDrop?(event: WrapEvent<DragEvent, HTMLDivElement>): void
     onRename?(oldPath: string, newPath: string): void
@@ -633,6 +634,12 @@ export function FileTree<T>(props: FileTreeProps<T>) {
       onDrop={event => {
         moveToPath(config.base)
         props.onDrop?.(event)
+      }}
+      onPointerUp={event => {
+        if (event.currentTarget === event.target) {
+          resetSelectedDirEntIds()
+        }
+        props.onPointerUp?.(event)
       }}
     >
       <FileTreeContext.Provider value={fileTreeContext}>
