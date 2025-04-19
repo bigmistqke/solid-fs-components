@@ -94,13 +94,7 @@ const App: Component = () => {
                       setEditable(editable => !editable)
                       break
                     case 'Space':
-                      if (_dirEnt.type === 'dir') {
-                        if (_dirEnt.expanded) {
-                          _dirEnt.collapse()
-                        } else {
-                          _dirEnt.expand()
-                        }
-                      } else {
+                      if (_dirEnt.type === 'file') {
                         setSelectedFile(_dirEnt.path)
                       }
                       break

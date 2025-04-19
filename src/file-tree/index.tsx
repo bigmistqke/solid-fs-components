@@ -650,6 +650,7 @@ FileTree.DirEnt = function (
     ComponentProps<'button'>,
     {
       ref?(element: HTMLButtonElement): void
+      onKeyDown?(event: WrapEvent<KeyboardEvent, HTMLButtonElement>): void
       onDragOver?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onDragStart?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onDrop?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
@@ -672,6 +673,24 @@ FileTree.DirEnt = function (
         }
       })
       props.ref?.(element)
+    },
+    onKeyDown(event: WrapEvent<KeyboardEvent, HTMLButtonElement>) {
+      const _dirEnt = dirEnt()
+      switch (event.code) {
+        case 'Space':
+          if (_dirEnt.type === 'dir') {
+            if (_dirEnt.expanded) {
+              _dirEnt.collapse()
+            } else {
+              _dirEnt.expand()
+            }
+          } else {
+            fileTree.resetSelectedDirEntIds()
+            _dirEnt.select()
+          }
+          break
+      }
+      props.onKeyDown?.(event)
     },
     onPointerUp(event: WrapEvent<PointerEvent, HTMLButtonElement>) {
       const _dirEnt = dirEnt()
