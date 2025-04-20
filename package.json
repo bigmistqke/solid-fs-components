@@ -1,5 +1,5 @@
 {
-  "name": "solid-fs-components",
+  "name": "@bigmistqke/solid-fs-components",
   "version": "0.1.0-beta",
   "description": "headless components for visualizing and interacting with reactive filesystem",
   "license": "MIT",
