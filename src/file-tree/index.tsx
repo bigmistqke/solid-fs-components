@@ -69,7 +69,7 @@ interface FileTreeContext<T> {
   isDirExpandedById(id: string): boolean
   // Selection
   resetSelectedDirEntIds(): void
-  moveSelectedDirEntsToPath(path: string): void
+  moveToPath(path: string): void
   selectDirEntById(id: string): void
   shiftSelectDirEntById(id: string): void
   deselectDirEntById(id: string): void
@@ -255,11 +255,10 @@ export type FileTreeProps<T> = Overwrite<
     base?: string
     children: (dirEnt: Accessor<DirEnt>, fileTree: FileTreeContext<T>) => JSX.Element
     fs: Pick<FileSystem<T>, 'readdir' | 'rename' | 'exists'>
+    onPointerUp?(event: WrapEvent<PointerEvent, HTMLDivElement>): void
     onDragOver?(event: WrapEvent<DragEvent, HTMLDivElement>): void
     onDrop?(event: WrapEvent<DragEvent, HTMLDivElement>): void
     onRename?(oldPath: string, newPath: string): void
-    onSelectedPaths?(paths: string[]): void
-    selectedPaths?: Array<string>
     sort?(dirEnt1: DirEnt, dirEnt2: DirEnt): number
   }
 >
@@ -519,9 +518,17 @@ export function FileTree<T>(props: FileTreeProps<T>) {
     })
   }
 
-  function moveSelectedDirEntsToPath(targetPath: string) {
+  function moveToPath(targetPath: string) {
+    const _focusedDirEntId = focusedDirEntId()
+
+    if (!_focusedDirEntId) {
+      throw new Error('Attempted to moveToPath without dirEnt focused')
+    }
+
     const targetId = pathToId(targetPath)
-    const ids = selectedDirEntIds()
+    const ids = selectedDirEntIds().includes(_focusedDirEntId)
+      ? selectedDirEntIds()
+      : [_focusedDirEntId]
     const paths = ids.map(idToPath)
     const existingPaths = new Array<{ newPath: string; oldPath: string }>()
 
@@ -587,33 +594,20 @@ export function FileTree<T>(props: FileTreeProps<T>) {
     get base() {
       return config.base
     },
+    getDirEntsOfDirId,
+    moveToPath,
+    pathToId,
     expandDirById,
     collapseDirById,
     isDirExpandedById,
-    moveSelectedDirEntsToPath,
-    resetSelectedDirEntIds,
     selectDirEntById,
     deselectDirEntById,
     shiftSelectDirEntById,
-    getDirEntsOfDirId,
+    resetSelectedDirEntIds,
     focusDirEnt: focusDirEntById,
     blurDirEnt: blurDirEntById,
     isDirEntFocused: isDirEntFocusedById,
-    pathToId,
   }
-
-  // Call event handler with current selection
-  createEffect(() => props.onSelectedPaths?.(selectedDirEntIds().map(idToPath)))
-
-  // Update selection from props
-  createComputed(() => {
-    if (!props.selectedPaths) return
-    setSelectedDirEntSpans(
-      props.selectedPaths
-        .filter(path => props.fs.exists(path))
-        .map(path => [pathToId(path, false)] as [string]),
-    )
-  })
 
   // Freeze ID numbers for selected entries
   createComputed(() => selectedDirEntIds().forEach(freezeId))
@@ -628,8 +622,14 @@ export function FileTree<T>(props: FileTreeProps<T>) {
         props.onDragOver?.(event)
       }}
       onDrop={event => {
-        moveSelectedDirEntsToPath(config.base)
+        moveToPath(config.base)
         props.onDrop?.(event)
+      }}
+      onPointerUp={event => {
+        if (event.currentTarget === event.target) {
+          resetSelectedDirEntIds()
+        }
+        props.onPointerUp?.(event)
       }}
     >
       <FileTreeContext.Provider value={fileTreeContext}>
@@ -650,11 +650,11 @@ FileTree.DirEnt = function (
     ComponentProps<'button'>,
     {
       ref?(element: HTMLButtonElement): void
+      onKeyDown?(event: WrapEvent<KeyboardEvent, HTMLButtonElement>): void
       onDragOver?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onDragStart?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onDrop?(event: WrapEvent<DragEvent, HTMLButtonElement>): void
       onMove?(parent: string): void
-      onPointerDown?(event: WrapEvent<PointerEvent, HTMLButtonElement>): void
       onPointerUp?(event: WrapEvent<PointerEvent, HTMLButtonElement>): void
       onFocus?(event: WrapEvent<FocusEvent, HTMLButtonElement>): void
       onBlur?(event: WrapEvent<FocusEvent, HTMLButtonElement>): void
@@ -674,32 +674,55 @@ FileTree.DirEnt = function (
       })
       props.ref?.(element)
     },
-    onPointerDown(event: WrapEvent<PointerEvent, HTMLButtonElement>) {
-      batch(() => {
-        if (event.shiftKey) {
-          dirEnt().shiftSelect()
-        } else {
-          if (!dirEnt().selected) {
-            if (!event[CTRL_KEY]) {
-              fileTree.resetSelectedDirEntIds()
+    onKeyDown(event: WrapEvent<KeyboardEvent, HTMLButtonElement>) {
+      const _dirEnt = dirEnt()
+      switch (event.code) {
+        case 'Space':
+          if (_dirEnt.type === 'dir') {
+            if (_dirEnt.expanded) {
+              _dirEnt.collapse()
+            } else {
+              _dirEnt.expand()
             }
-            dirEnt().select()
-          } else if (event[CTRL_KEY]) {
-            dirEnt().deselect()
+          } else {
+            fileTree.resetSelectedDirEntIds()
+            _dirEnt.select()
           }
-        }
-      })
-      props.onPointerDown?.(event)
+          break
+      }
+      props.onKeyDown?.(event)
     },
     onPointerUp(event: WrapEvent<PointerEvent, HTMLButtonElement>) {
       const _dirEnt = dirEnt()
-      if (_dirEnt.type === 'dir') {
-        if (_dirEnt.expanded) {
-          _dirEnt.collapse()
+
+      batch(() => {
+        // Handle dirEnt-selection
+        if (event.shiftKey) {
+          dirEnt().shiftSelect()
         } else {
-          _dirEnt.expand()
+          if (event[CTRL_KEY]) {
+            // Toggle selection when ctrl is pressed
+            if (!dirEnt().selected) {
+              dirEnt().select()
+            } else {
+              dirEnt().deselect()
+            }
+          } else {
+            // Reset selection to this dirEnt
+            fileTree.resetSelectedDirEntIds()
+            dirEnt().select()
+          }
         }
-      }
+        // Handle dir-expand/collapse
+        if (_dirEnt.type === 'dir') {
+          if (_dirEnt.expanded) {
+            _dirEnt.collapse()
+          } else {
+            _dirEnt.expand()
+          }
+        }
+      })
+
       props.onPointerUp?.(event)
     },
     onDragOver: (event: WrapEvent<DragEvent, HTMLButtonElement>) => {
@@ -712,9 +735,9 @@ FileTree.DirEnt = function (
       const _dirEnt = dirEnt()
 
       if (_dirEnt.type === 'dir') {
-        fileTree.moveSelectedDirEntsToPath(_dirEnt.path)
+        fileTree.moveToPath(_dirEnt.path)
       } else {
-        fileTree.moveSelectedDirEntsToPath(PathUtils.getParent(_dirEnt.path))
+        fileTree.moveToPath(PathUtils.getParent(_dirEnt.path))
       }
 
       props.onDrop?.(event)

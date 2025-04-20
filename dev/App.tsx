@@ -65,8 +65,6 @@ const App: Component = () => {
           onRename={(oldPath, newPath) =>
             setSelectedFile(file => PathUtils.rebase(file, oldPath, newPath))
           }
-          onSelectedPaths={console.log}
-          selectedPaths={['test/index.test.tsx']}
         >
           {dirEnt => {
             const [editable, setEditable] = createSignal(false)
@@ -96,13 +94,7 @@ const App: Component = () => {
                       setEditable(editable => !editable)
                       break
                     case 'Space':
-                      if (_dirEnt.type === 'dir') {
-                        if (_dirEnt.expanded) {
-                          _dirEnt.collapse()
-                        } else {
-                          _dirEnt.expand()
-                        }
-                      } else {
+                      if (_dirEnt.type === 'file') {
                         setSelectedFile(_dirEnt.path)
                       }
                       break
