@@ -23,7 +23,7 @@ SOFTWARE.
   <img width="100%" src="https://assets.solidjs.com/banner?type=solid-fs-components&background=tiles&project=%20" alt="solid-fs-components">
 </p>
 
-# solid-fs-components (WIP)
+# @bigmistqke/solid-fs-components
 
 [![pnpm](https://img.shields.io/badge/maintained%20with-pnpm-cc00ff.svg?style=for-the-badge&logo=pnpm)](https://pnpm.io/)
 
@@ -337,7 +337,7 @@ export default defineConfig({
 
 export {}
 `,__vite_glob_0_10=`{
-  "name": "solid-fs-components",
+  "name": "@bigmistqke/solid-fs-components",
   "version": "0.1.0-beta",
   "description": "headless components for visualizing and interacting with reactive filesystem",
   "license": "MIT",
